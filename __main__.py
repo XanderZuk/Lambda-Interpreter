@@ -24,8 +24,6 @@ def main():
             try:
                 expr = parser.preprocess(inp)
                 print(f"Expression: {expr}")
-                print(f"Bound Vars: {Term.bound_variables(expr)}")
-                print(f"Free Vars: {Term.free_variables(expr)}")
                 while True:
                     reduced_expr = Term.beta_reduce(expr)
                     if (reduced_expr == expr):

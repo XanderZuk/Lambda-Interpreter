@@ -2,10 +2,12 @@ class Term:
     def __init__(self, left, right):
         self.left = left
         self.right = right
-    
+     
     def alpha_reduce(term):
         bound_vars = Term.bound_variables(term.left)    # List of bound variables in the left side of the application
         free_vars = Term.free_variables(term.right)     # List of free variables in the right side of the application
+        print(f"Bound Vars: {bound_vars}")
+        print(f"Free Vars: {free_vars}")
         # Renames any conflicting variables
         for s in bound_vars:    
             if s in free_vars:
