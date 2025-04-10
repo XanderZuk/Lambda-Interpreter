@@ -1,6 +1,6 @@
 class Macro:
-    def __init__(self, name, expression):
+    def __init__(self, name, term):
         self.name = name
-        self.expression = expression
+        self.term = term
 
 

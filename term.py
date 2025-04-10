@@ -9,6 +9,7 @@ class Term:
         # Renames any conflicting variables
         for s in bound_vars:    
             if s in free_vars:
+                #print(f"Substituting {s} for {new_var}")
                 new_var = Term.next_variable_name(term)
                 term.left = Term.substitute(term.left, s, Variable(new_var))
         return term
@@ -16,11 +17,12 @@ class Term:
     def beta_reduce(redex):
         if isinstance(redex.left, Abstraction) and isinstance(redex, Application):
             redex = Term.alpha_reduce(redex)
-            return Term.substitute(redex.left.right, redex.left.left, redex.right) 
+            return Term.substitute(redex.left.right, redex.left.left.name, redex.right) 
         else:
             return redex
         
     def substitute(term, var_name, new_term):
+        #print(f"Substitution input: {term}")
         if isinstance(term, Abstraction):
             if var_name == term.left.name:
                 term.left = new_term
@@ -31,14 +33,12 @@ class Term:
         elif isinstance(term, Variable):
             if term.name == var_name:
                 term = new_term
-            return
         return term
     
     def bound_variables(term):
         bound_variables_list = []
         def find_bound_variables(term):
             if isinstance(term, Abstraction):
-                print(f"Added: {term.left.name}")
                 bound_variables_list.append(term.left.name)
                 find_bound_variables(term.right)
             elif isinstance(term, Application):
@@ -96,7 +96,13 @@ class Application(Term):
         super().__init__(left, right)
 
     def __str__(self):
-        return f"({self.left}{self.right})"
+        left = self.left
+        right = self.right
+        if isinstance(self.left, Abstraction):
+            left = f"({self.left})"
+        if isinstance(self.right, Abstraction):
+            right = f"({self.right})"
+        return f"({left}{right})"
 
 class Variable(Term):
     def __init__(self, name):

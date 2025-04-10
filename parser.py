@@ -5,20 +5,25 @@ class Parser:
     def __init__(self):
         self.macros = []
 
-    def create_macro(self, name, expr):
+    def create_macro(self, name, term):
         if name.isalpha():
-            term = self.preprocess(expr)
-            term = Term.beta_reduce(term)
+            term = self.preprocess(term)
+            while True:
+                reduced_term = Term.beta_reduce(term)
+                if (reduced_term == term):
+                    break
+                else:
+                    term = reduced_term
             for m in self.macros:
                 if m.name == name:
-                    m.expr = term
+                    m.term = term
                     return
             
         self.macros.append(Macro(name, term))
 
     def preprocess(self, input):
         for m in self.macros:   # Searches for macros in the input expression
-            input = input.replace(m.name, m.expression)
+            input = input.replace(m.name, str(m.term))
         parentheses_count = 0
         for char in input:
             if char == "(":
@@ -34,21 +39,22 @@ class Parser:
         return Parser.parse(input)
 
     def parse(input):
+        #print(f"Parser Received: {input}")
         match input[0]:
             case "λ" | "\\":
-                print("Found Lambda")
+                #print("Found Lambda")
                 return Parser.parse_abstraction(input[1:])
             case "(":
-                print("Found (")
+                #print("Found (")
                 return Parser.parse_application(input[1:len(input) - 1])
             case var if Parser.is_variable(var):
-                print("Found Var")
+                #print("Found Var")
                 return Variable(var)
             case other:
                 raise InvalidCharacterError(str(other), input)
 
     def parse_abstraction(input):
-        print(f"Abs Recieved: {input}")
+        #print(f"Abs Received: {input}")
         next_char = input[0]
         if Parser.is_variable(next_char):
             return Abstraction(Variable(next_char), Parser.parse_abstraction(input[1:]))
@@ -58,48 +64,58 @@ class Parser:
             raise LambdaSyntaxError(".", next_char, input)
 
     def parse_application(input):
-        print(f"App Recieved: {input}")
+        #print(f"App Received: {input}")
         parentheses_count = 0   # Counts open parentheses to determine if the current value of the loop is enclosed
         first_term_index = -1
-        found_lambda = False
         for i in range(0, len(input)):
             match input[i]:
                 case "(":
-                    print("Application: found (")
                     parentheses_count += 1
                 case ")":
                     parentheses_count -= 1
                     if first_term_index == -1 and parentheses_count == 0:
-                        if found_lambda:
-                            return Application(Parser.parse(input[:i]), Parser.parse(input[i:]))
                         first_term_index = i
                     elif parentheses_count == 0:
-                        return Application(Parser.parse(input[1:first_term_index]), Parser.parse(input[first_term_index:len(input) - 1]))       # Case that term is an application of complex terms
+                        left = input[0:first_term_index + 1]
+                        right = input[first_term_index + 1:len(input)]
+                        #print(f"Left: {left}")
+                        #print(f"Right: {right}")
+
+                        if left[1] == "λ" or left[1] == "\\":
+                            left = left[1:len(input) - 1]
+                        if right[1] == "λ" or right[1] == "\\":
+                            right = right[1:len(input) - 1]
+                        return Application(Parser.parse(left), Parser.parse(right))       # Case that term is an application of complex terms
                 case var if Parser.is_variable(var):
-                    print(f"Application: found var {var}")
+                    #print(f"Application: found var {var}")
                     if parentheses_count == 0 and i == 0:
-                        return Application(Variable(var), Parser.parse(input[1:]))
-                    elif parentheses_count == 0:
-                        return Application(Parser.parse(input[:len(input) - 1]), Variable(var))
-                case "λ" | "\\":
-                    found_lambda = True
-                    if (not first_term_index == -1) and parentheses_count == 0:
-                        return Application(Parser.parse(input[1:first_term_index]), Parser.parse(input[first_term_index:]))
+                        if len(input) == 2:
+                            return Application(Variable(input[0]), Variable(input[1]))
+                        else:
+                            right = input[1:]
+                            if right[1] == "λ" or right[1] == "\\":
+                                right = right[1:len(input) - 1]
+                            return Application(Variable(var), Parser.parse(right))
+                    elif parentheses_count == 0 and (not first_term_index == -1):
+                        left = input[1:first_term_index]
+                        if left[1] == "λ" or left[1] == "\\":
+                            left = left[1:first_term_index - 1]
+                        return Application(Parser.parse(left), Variable(var))
 
     def is_variable(name):
         return len(name) == 1 and name.isalpha() and name.islower()
     
 class LambdaSyntaxError(Exception):
     def __init__(self, expected, actual, expression):
-        message = "Error processing abstraction: expected {expected}, actual {actual} in {expression}"
-        super().__init__(message)
+        self.message = f"Error processing abstraction: expected {expected}, actual {actual} in {expression}"
+        super().__init__(self.message)
 
 class InvalidCharacterError(Exception):
     def __init__(self, char, expression):
-        message = "Invalid character: {char} in {expression}"
-        super().__init__(message)
+        self.message = f"Invalid character: {char} in {expression}"
+        super().__init__(self.message)
 
 class UnbalancedParenthesesError(Exception):
     def __init__(self):
-        message = "Unbalanced parentheses"
-        super().__init__(message)
+        self.message = "Unbalanced parentheses"
+        super().__init__(self.message)
