@@ -39,7 +39,7 @@ class Parser:
         return Parser.parse(input)
 
     def parse(input):
-        #print(f"Parser Received: {input}")
+        print(f"Parser Received: {input}")
         match input[0]:
             case "λ" | "\\":
                 #print("Found Lambda")
@@ -54,7 +54,7 @@ class Parser:
                 raise InvalidCharacterError(str(other), input)
 
     def parse_abstraction(input):
-        #print(f"Abs Received: {input}")
+        print(f"Abs Received: {input}")
         next_char = input[0]
         if Parser.is_variable(next_char):
             return Abstraction(Variable(next_char), Parser.parse_abstraction(input[1:]))
@@ -64,7 +64,7 @@ class Parser:
             raise LambdaSyntaxError(".", next_char, input)
 
     def parse_application(input):
-        #print(f"App Received: {input}")
+        print(f"App Received: {input}")
         parentheses_count = 0   # Counts open parentheses to determine if the current value of the loop is enclosed
         first_term_index = -1
         for i in range(0, len(input)):
@@ -78,16 +78,16 @@ class Parser:
                     elif parentheses_count == 0:
                         left = input[0:first_term_index + 1]
                         right = input[first_term_index + 1:len(input)]
-                        #print(f"Left: {left}")
-                        #print(f"Right: {right}")
+                        print(f"Left: {left}")
+                        print(f"Right: {right}")
 
                         if left[1] == "λ" or left[1] == "\\":
-                            left = left[1:len(input) - 1]
+                            left = left[1:len(left) - 1]
                         if right[1] == "λ" or right[1] == "\\":
-                            right = right[1:len(input) - 1]
+                            right = right[1:len(right) - 1]
                         return Application(Parser.parse(left), Parser.parse(right))       # Case that term is an application of complex terms
                 case var if Parser.is_variable(var):
-                    #print(f"Application: found var {var}")
+                    print(f"Application: found var {var}")
                     if parentheses_count == 0 and i == 0:
                         if len(input) == 2:
                             return Application(Variable(input[0]), Variable(input[1]))
@@ -97,13 +97,14 @@ class Parser:
                                 right = right[1:len(input) - 1]
                             return Application(Variable(var), Parser.parse(right))
                     elif parentheses_count == 0 and (not first_term_index == -1):
-                        left = input[1:first_term_index]
+                        left = input[0:first_term_index + 1]
                         if left[1] == "λ" or left[1] == "\\":
                             left = left[1:first_term_index - 1]
+                        print(f"Application: ({left}, {var})")
                         return Application(Parser.parse(left), Variable(var))
 
     def is_variable(name):
-        return len(name) == 1 and name.isalpha() and name.islower()
+        return len(name) == 1 and name in "abcdefghijklmnopqrstuvwxyz" and name.islower()
     
 class LambdaSyntaxError(Exception):
     def __init__(self, expected, actual, expression):
