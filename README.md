@@ -1,5 +1,14 @@
 Usage:
   Run the file "__main__.py" to start the program. The console will prompt the user for an input or command, and will continue until the session is terminated.
+  The program will accept the following command line arguments:
+    "show": The program will show you each step of the reduction, default is False.
+    recursion_limit: Allows you to set the max recursion depth as an integer, default is 100.
+    Ex. 1: python __main__.py show 100
+    Ex. 2: python __main__.py 100
+    Ex. 1: python __main__.py show
+    Ex. 2: python __main__.py
+
+  Note: The parser is very sensitive to input formatting. The program will repeat the expression to you before reducing so you can verify that it was parsed correctly.
 
 Commands: 
   "exit" or "quit" will terminate the program.
@@ -65,3 +74,6 @@ Examples: The following are some examples of inputs with their outputs that I kn
   (((Add)(Zero))(One)) -> λf.λx.(fx)
   (((Add)(One))(Zero)) -> λf.λx.(fx)
   (((Add)(One))(One)) -> λf.λx.(f(fx))
+
+  (((Mult)(Two))(Three)) -> λf.λx.(f(f(f(f(f(fx))))))
+  (((Mult)(Three))(Two)) -> λf.λx.(f(f(f(f(f(fx))))))

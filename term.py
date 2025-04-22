@@ -8,35 +8,27 @@ class Term:
     def alpha_reduce(term):
         bound_vars = Term.bound_variables(term.left)    # List of bound variables in the left side of the application
         free_vars = Term.free_variables(term.right)     # List of free variables in the right side of the application
-        #print(f"Bound Vars: {bound_vars}")
-        #print(f"Free Vars: {free_vars}")
         # Renames any conflicting variables
         for s in bound_vars:    
             if s in free_vars:
                 new_var = Term.next_variable_name(term)
-                #print(f"Substituting {s} for {new_var}")
                 term.left = Term.substitute_var(term.left, s, Variable(new_var))
         return term
 
     def beta_reduce(redex):
-        #print(f"Beta reducer received: {redex}")
         if isinstance(redex, Application):
             if isinstance(redex.left, Abstraction):
                 redex = Term.alpha_reduce(redex)
-                #print(f"Alpha reduced to: {redex}")
                 return Term.substitute_term(redex.left.right, redex.left.left.name, redex.right)
             else:
-                #print(f"Attempting to reduce application: {redex}")
                 return Application(Term.beta_reduce(redex.left), Term.beta_reduce(redex.right))
-        elif isinstance(redex, Abstraction):
+        elif isinstance(redex, Abstraction): # The redex is an abstraction
             return Abstraction(redex.left, Term.beta_reduce(redex.right))
         else:   # The redex is a variable
             return redex
         
+    # Used by the alpha-reducer
     def substitute_var(term, var_name, new_term):
-        #print(f"Substitution input: {term}")
-        #print(f"Substitution var: {var_name}")
-        #print(f"Substitution new term: {new_term}")
         if isinstance(term, Abstraction):
             if var_name == term.left.name and isinstance(new_term, Variable):
                 term.left = new_term
@@ -46,9 +38,10 @@ class Term:
             term.right = Term.substitute_var(term.right, var_name, new_term)
         elif isinstance(term, Variable):
             if term.name == var_name:
-                term = new_term
+                term = copy.deepcopy(new_term)
         return term
     
+    # Used by the beta-reducer
     def substitute_term(term, var_name, new_term):
         if isinstance(term, Abstraction):
             if var_name == term.left.name:
@@ -59,7 +52,7 @@ class Term:
             term.right = Term.substitute_term(term.right, var_name, new_term)
         elif isinstance(term, Variable):
             if term.name == var_name:
-                term = new_term
+                term = copy.deepcopy(new_term)
         return term
     
     def bound_variables(term):
