@@ -1,13 +1,14 @@
 import sys
 import os
+import copy
 from parser import Parser, LambdaSyntaxError, InvalidCharacterError, UnbalancedParenthesesError
-from term import Term, Variable, Term
+from term import Term
 
 def main():
     parser = Parser()
     while True:
         inp = str(input("Enter an expression: ")).replace(" ", "")
-        if (inp == "exit"):
+        if (inp == "quit") or (inp == "exit"):
             return 0
         elif (inp == "clear"):
             clear = lambda: os.system('cls')
@@ -23,10 +24,11 @@ def main():
         else:
             try:
                 expr = parser.preprocess(inp)
+                expr = Parser.parse(expr)
                 print(f"Expression: {expr}")
                 while True:
-                    reduced_expr = Term.beta_reduce(expr)
-                    if (reduced_expr == expr):
+                    reduced_expr = Term.beta_reduce(copy.deepcopy(expr))
+                    if (str(reduced_expr) == str(expr)):
                         break
                     else:
                         print(f"Reduced to: {reduced_expr}")
@@ -42,6 +44,8 @@ def main():
             except UnbalancedParenthesesError as error:
                 print(error.message)
                 continue
+            except RecursionError:
+                print(f"Max recursion depth exceeded. Term {expr} was too large or resulted in an infinite expansion.")
 
 if __name__ == '__main__':
     sys.exit(main()) 

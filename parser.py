@@ -1,3 +1,4 @@
+import copy
 from macro import Macro
 from term import Abstraction, Application, Variable, Term
 
@@ -5,25 +6,27 @@ class Parser:
     def __init__(self):
         self.macros = []
 
-    def create_macro(self, name, term):
+    def create_macro(self, name, expr):
         if name.isalpha():
-            term = self.preprocess(term)
+            expr = self.preprocess(expr)
+            expr = Parser.parse(expr)
+            #print(f"Expression: {expr}")
             while True:
-                reduced_term = Term.beta_reduce(term)
-                if (reduced_term == term):
+                reduced_expr = Term.beta_reduce(copy.deepcopy(expr))
+                if (str(reduced_expr) == str(expr)):
                     break
                 else:
-                    term = reduced_term
+                    expr = reduced_expr
             for m in self.macros:
                 if m.name == name:
-                    m.term = term
+                    m.expr = expr
                     return
             
-        self.macros.append(Macro(name, term))
+        self.macros.append(Macro(name, expr))
 
     def preprocess(self, input):
         for m in self.macros:   # Searches for macros in the input expression
-            input = input.replace(m.name, str(m.term))
+            input = input.replace(m.name, str(m.expr))
         parentheses_count = 0
         for char in input:
             if char == "(":
@@ -36,7 +39,7 @@ class Parser:
         if not parentheses_count == 0:
             raise UnbalancedParenthesesError()
 
-        return Parser.parse(input)
+        return input
 
     def parse(input):
         print(f"Parser Received: {input}")
@@ -75,16 +78,20 @@ class Parser:
                     parentheses_count -= 1
                     if first_term_index == -1 and parentheses_count == 0:
                         first_term_index = i
+                        print(f"First term found")
                     elif parentheses_count == 0:
-                        left = input[0:first_term_index + 1]
-                        right = input[first_term_index + 1:len(input)]
-                        print(f"Left: {left}")
-                        print(f"Right: {right}")
+                        left = input[:first_term_index + 1]
+                        right = input[first_term_index + 1:]
+                        print(f"Left 1: {left}")
+                        print(f"Right 1: {right}")
 
                         if left[1] == "λ" or left[1] == "\\":
                             left = left[1:len(left) - 1]
                         if right[1] == "λ" or right[1] == "\\":
                             right = right[1:len(right) - 1]
+
+                        print(f"Left 2: {left}")
+                        print(f"Right 2: {right}")
                         return Application(Parser.parse(left), Parser.parse(right))       # Case that term is an application of complex terms
                 case var if Parser.is_variable(var):
                     print(f"Application: found var {var}")
@@ -94,12 +101,12 @@ class Parser:
                         else:
                             right = input[1:]
                             if right[1] == "λ" or right[1] == "\\":
-                                right = right[1:len(input) - 1]
+                                right = right[1:len(input)]
                             return Application(Variable(var), Parser.parse(right))
                     elif parentheses_count == 0 and (not first_term_index == -1):
                         left = input[0:first_term_index + 1]
                         if left[1] == "λ" or left[1] == "\\":
-                            left = left[1:first_term_index - 1]
+                            left = left[1:first_term_index]
                         print(f"Application: ({left}, {var})")
                         return Application(Parser.parse(left), Variable(var))
 

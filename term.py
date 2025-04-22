@@ -1,3 +1,5 @@
+import copy
+
 class Term:
     def __init__(self, left, right):
         self.left = left
@@ -6,32 +8,55 @@ class Term:
     def alpha_reduce(term):
         bound_vars = Term.bound_variables(term.left)    # List of bound variables in the left side of the application
         free_vars = Term.free_variables(term.right)     # List of free variables in the right side of the application
-        print(f"Bound Vars: {bound_vars}")
-        print(f"Free Vars: {free_vars}")
+        #print(f"Bound Vars: {bound_vars}")
+        #print(f"Free Vars: {free_vars}")
         # Renames any conflicting variables
         for s in bound_vars:    
             if s in free_vars:
-                #print(f"Substituting {s} for {new_var}")
                 new_var = Term.next_variable_name(term)
-                term.left = Term.substitute(term.left, s, Variable(new_var))
+                #print(f"Substituting {s} for {new_var}")
+                term.left = Term.substitute_var(term.left, s, Variable(new_var))
         return term
 
     def beta_reduce(redex):
-        if isinstance(redex.left, Abstraction) and isinstance(redex, Application):
-            redex = Term.alpha_reduce(redex)
-            return Term.substitute(redex.left.right, redex.left.left.name, redex.right) 
-        else:
+        #print(f"Beta reducer received: {redex}")
+        if isinstance(redex, Application):
+            if isinstance(redex.left, Abstraction):
+                redex = Term.alpha_reduce(redex)
+                #print(f"Alpha reduced to: {redex}")
+                return Term.substitute_term(redex.left.right, redex.left.left.name, redex.right)
+            else:
+                #print(f"Attempting to reduce application: {redex}")
+                return Application(Term.beta_reduce(redex.left), Term.beta_reduce(redex.right))
+        elif isinstance(redex, Abstraction):
+            return Abstraction(redex.left, Term.beta_reduce(redex.right))
+        else:   # The redex is a variable
             return redex
         
-    def substitute(term, var_name, new_term):
+    def substitute_var(term, var_name, new_term):
         #print(f"Substitution input: {term}")
+        #print(f"Substitution var: {var_name}")
+        #print(f"Substitution new term: {new_term}")
+        if isinstance(term, Abstraction):
+            if var_name == term.left.name and isinstance(new_term, Variable):
+                term.left = new_term
+            term.right = Term.substitute_var(term.right, var_name, new_term)
+        elif isinstance(term, Application):
+            term.left = Term.substitute_var(term.left, var_name, new_term)
+            term.right = Term.substitute_var(term.right, var_name, new_term)
+        elif isinstance(term, Variable):
+            if term.name == var_name:
+                term = new_term
+        return term
+    
+    def substitute_term(term, var_name, new_term):
         if isinstance(term, Abstraction):
             if var_name == term.left.name:
-                term.left = new_term
-            term.right = Term.substitute(term.right, var_name, new_term)
+                return term     # Variable is rebound and should not be substituted
+            term.right = Term.substitute_term(term.right, var_name, new_term)
         elif isinstance(term, Application):
-            term.left = Term.substitute(term.left, var_name, new_term)
-            term.right = Term.substitute(term.right, var_name, new_term)
+            term.left = Term.substitute_term(term.left, var_name, new_term)
+            term.right = Term.substitute_term(term.right, var_name, new_term)
         elif isinstance(term, Variable):
             if term.name == var_name:
                 term = new_term
